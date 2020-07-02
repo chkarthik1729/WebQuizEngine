@@ -1,55 +1,107 @@
 # JetBrains Academy's Web Quiz Engine
 
-## Stage #1: Solving a simple quiz
-
-### About
-
-<p>In the Internet, you can often find sites where you need to answer questions: educational sites, sites with psychological tests, job search services, or just entertaining sites like web quests. Something they all have in common is that they permit to answer questions (or quizzes) and then see the results.</p>
-
-<p>In this project, you will develop a multi-user web service for creating and solving quizzes using<strong> </strong>REST API, an embedded database, security, and other technologies. Here we will concentrate on the server side ("engine") without a user interface at all. The project stages are described in terms of the <strong>client-server model</strong>, where the client can be a <strong>browser</strong>, the <strong>curl</strong> tool, a REST client (like <strong>postman</strong>) or something else.</p>
-
-<p>During the development of the web service, you will probably have to do some Google searching and additional reading. This is a normal situation, just read a few articles when implementing stages.</p>
-
-<p>After you complete this project, you will have a clear understanding of <strong>backend</strong> development. You'll also know how to combine various modern technologies to get a great result. If you continue the work on the project, you can also develop a web/mobile client for this web service.</p>
+## Stage #2: Lots of quizzes
 
 ### Description
 
-<p>At the first stage, you need to develop a simple JSON API that always returns the same quiz to be solved. The API should support only two operations: getting the quiz and solving it by passing an answer. Each operation is described in more detail below.</p>
+<p>At this stage, you will improve the web service to create, get and solve lots of quizzes, not just a single one. All quizzes should be stored in the service's memory, without an external storage.</p>
 
-<p>Once the stage is completed, you will have a working web service with an comprehensive API.</p>
+<p>The format of requests and responses will be similar to the first stage, but you will make the API more REST-friendly and extendable. Each of the four possible operations is described below.</p>
 
-<p>To test your API, you may write Spring Boot tests, or use a rest client like <a target="_blank" href="https://www.getpostman.com/product/api-client" rel="noopener noreferrer nofollow">postman</a> or <a target="_blank" href="https://gist.github.com/subfuzion/08c5d85437d5d4f00e58" rel="noopener noreferrer nofollow">the curl tool</a>. GET requests can be tested by accessing the URL in your browser. You can also check your application in the browser using <a target="_blank" href="https://reqbin.com/" rel="noopener noreferrer nofollow">reqbin</a>.</p>
+<p>To complete this stage, you may read about <a target="_blank" href="https://www.baeldung.com/jackson-ignore-properties-on-serialization" rel="noopener noreferrer nofollow">some Jackson serializer properties for ignoring fields</a>. But this is not the only way to solve this stage.</p>
 
-### Get the quiz
+### Create a new quiz
 
-<p>The quiz has exactly three fields: <code class="java">title</code> (string) <code class="java">text</code> (string) and <code class="java">options</code> (array). To get the quiz, the client sends the <code class="java">GET</code> request to <code class="java">/api/quiz</code>. The server should return the following JSON structure:</p>
+<p>To create a new quiz, the client need to send a JSON as the request's body via <code class="language-json">POST</code> to <code class="language-json">/api/quizzes</code>. The JSON should contain the four fields: <code class="language-json">title</code> (a string), <code class="language-json">text</code> (a string), <code class="language-json">options</code> (an array of strings) and <code class="language-json">answer</code> (integer index of the correct option). At this moment, all the keys are optional.</p>
 
-<pre><code class="java">{
+<p>Here is a new JSON quiz as an example:</p>
+
+<pre><code class="language-json">{
+  "title": "The Java Logo",
+  "text": "What is depicted on the Java logo?",
+  "options": ["Robot","Tea leaf","Cup of coffee","Bug"],
+  "answer": 2
+}</code></pre>
+
+<p>The <code class="language-json">answer</code> equals 2 corresponds to the third item from the <code class="language-json">options</code> array (<code class="language-json">"Cup of coffee"</code>).</p>
+
+<p>The server response is a JSON with four fields: <code class="language-json">id</code>, <code class="language-json">title</code>, <code class="language-json">text</code> and <code class="language-json">options</code>. Here is an example.</p>
+
+<pre><code class="language-json">{
+  "id": 1,
   "title": "The Java Logo",
   "text": "What is depicted on the Java logo?",
   "options": ["Robot","Tea leaf","Cup of coffee","Bug"]
 }</code></pre>
 
-<p>In your API, the names of attributes must be exactly the same (<code class="java">title</code>, <code class="java">text</code>, <code class="java">options</code>), but you can assign any values to them. The quiz should contain four items in the <code class="java">options</code> array. The correct answer must be the <strong>third option</strong>, but since the indexes start from zero, <strong>its index is 2</strong>.</p>
+<p>The <code class="language-json">id</code> field is a generated unique integer identifier for the quiz. Also, the response may or may not include the <code class="language-json">answer</code> field depending on your wishes. This is not very important for this operation.</p>
 
-<p><div class="alert alert-primary">There is no need to force your server to respond a JSON with line breaks and additional spaces. This is used only to demonstrate the response in a human-readable format. Actually, your server returns a long single-line JSON: <code class="java">{"title":"The Java Logo","text":"What is depicted on the Java logo?","options":["Robot","Tea leaf","Cup of coffee","Bug"]}</code>.</div></p>
+<p>At this moment, it is admissible if a creation request does not contain some quiz data. In the next stages, we will improve the service to avoid some server errors.</p>
 
-### Solve the quiz
+### Get a quiz by id
 
-<p>To solve the quiz, the client need to pass the <code class="java">answer</code> parameter using the <code class="java">POST</code> request to <code class="java">/api/quiz</code> with content as parameter <code class="java">answer</code> and value. This parameter is the index of a chosen option from <code class="java">options</code> array. We suppose that in our service indexes start from zero.</p>
+<p>To get a quiz by <code class="language-json">id</code>, the client sends the <code class="language-json">GET</code> request to <code class="language-json">/api/quizzes/{id}</code>.</p>
 
-<p>The server should return JSON with two fields: <code class="java">success</code> (<code class="java">true</code> or <code class="java">false</code>) and <code class="java">feedback</code> (just a string). There are two possible responses from the server:</p>
+<p>Here is a response example:</p>
+
+<pre><code class="language-json">{
+  "id": 1,
+  "title": "The Java Logo",
+  "text": "What is depicted on the Java logo?",
+  "options": ["Robot","Tea leaf","Cup of coffee","Bug"]
+}</code></pre>
+
+<p><div class="alert alert-warning">The response <strong>must not</strong> include the <code class="language-json">answer</code> field, otherwise, any user will be able to find the correct answer for any quiz.</div></p>
+
+<p>If the specified quiz does not exist, the server should return the <code class="language-json">404 (Not found)</code> status code.</p>
+
+### Get all quizzes
+
+<p>To get all existing quizzes in the service, the client sends the <code class="language-json">GET</code> request to <code class="language-json">/api/quizzes</code>.</p>
+
+<p>The response contains a JSON array of quizzes like the following:</p>
+
+<pre><code class="language-json">[
+  {
+    "id": 1,
+    "title": "The Java Logo",
+    "text": "What is depicted on the Java logo?",
+    "options": ["Robot","Tea leaf","Cup of coffee","Bug"]
+  },
+  {
+    "id": 2,
+    "title": "The Ultimate Question",
+    "text": "What is the answer to the Ultimate Question of Life, the Universe and Everything?",
+    "options": ["Everything goes right","42","2+2=4","11011100"]
+  }
+]</code></pre>
+
+<p><div class="alert alert-warning">The response <strong>must not</strong> include the <code class="language-json">answer</code> field, otherwise, any user will be able to find the correct answer for any quiz.</div></p>
+
+<p>If there are no quizzes, it the service returns an empty JSON array: <code class="language-json">[]</code>.</p>
+
+<p>In both cases, the status code is <code class="language-json">200 (OK)</code>.</p>
+
+### Solving a quiz
+
+<p>To solve the quiz, the client sends a POST request to <code class="language-json">/api/quizzes/{id}/solve</code> and passes the <code class="language-json">answer</code> parameter in the content. This parameter is the index of a chosen option from <code class="language-json">options</code> array. As before, it starts from zero.</p>
+
+<p>The service returns a JSON with two fields: <code class="language-json">success</code> (<code class="language-json">true</code> or <code class="language-json">false</code>) and <code class="language-json">feedback</code> (just a string). There are three possible responses.</p>
 
 <ul>
-	<li>If the passed answer is correct (<code class="java">POST</code> to <code class="java">/api/quiz</code> with content <code class="java">answer=2</code>):</li>
+	<li>If the passed answer is correct (e.g., <code class="language-json">POST</code> to <code class="language-json">/api/quizzes/1/solve</code> with content <code class="language-json">answer=2</code>):</li>
 </ul>
 
-<pre><code class="java">{"success":true,"feedback":"Congratulations, you're right!"}</code></pre>
+<pre><code class="language-json">{"success":true,"feedback":"Congratulations, you're right!"}</code></pre>
 
 <ul>
-	<li>If the answer is incorrect (e.g., <code class="java">POST</code> to <code class="java">/api/quiz</code> with content <code class="java">answer=1</code>):</li>
+	<li>If the answer is incorrect (e.g., <code class="language-json">POST</code> to <code class="language-json">/api/quizzes/1/solve</code> with content <code class="language-json">answer=1</code>):</li>
 </ul>
 
-<pre><code class="java">{"success":false,"feedback":"Wrong answer! Please, try again."}</code></pre>
+<pre><code class="language-json">{"success":false,"feedback":"Wrong answer! Please, try again."}</code></pre>
 
-<p>You can write any other strings in the <code class="java">feedback</code> field, but the names of the fields and the <code class="java">true</code>/<code class="java">false</code> values must match this example.</p>
+<ul>
+	<li>If the specified quiz does not exist, the server returns the <code class="language-json">404 (Not found)</code> status code.</li>
+</ul>
+
+<p>You can write any other strings in the <code class="language-json">feedback</code> field, but the names of fields and the <code class="language-json">true</code>/<code class="language-json">false</code> values must match this example.</p>

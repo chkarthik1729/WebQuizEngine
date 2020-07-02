@@ -1,38 +1,42 @@
 package engine;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
+@RequestMapping("/api/quizzes")
 public class QuizController {
 
-    Quiz quiz;
-    QuizResult result;
+    @Autowired
+    QuizService service;
 
-    public QuizController() {
-        quiz = new Quiz();
-        result = new QuizResult();
-        quiz.setTitle("The Java Logo");
-        quiz.setText("What is depicted on the Java logo?");
-        quiz.setOptions(new String[] {"Robot","Tea leaf","Cup of coffee","Bug"});
+    @GetMapping
+    public List<Quiz> getQuiz() {
+        return service.getAllQuizzes();
     }
 
-    @GetMapping("/api/quiz")
-    public Quiz getQuiz() {
-        return quiz;
-    }
-
-    @PostMapping("/api/quiz")
-    public QuizResult evaluateQuiz(@RequestBody String answer) {
-        if ("answer=2".equals(answer)) {
-            result.setSuccess(true);
-            result.setFeedback("Congratulations, you're right!");
-            return result;
+    @GetMapping("/{id}")
+    public Quiz getQuiz(@PathVariable int id) {
+        try {
+            return service.getQuiz(id);
+        } catch (ArrayIndexOutOfBoundsException ignored) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Required quiz not available");
         }
-        result.setSuccess(false);
-        result.setFeedback("Wrong answer! Please, try again.");
-        return result;
+    }
+
+    @PostMapping
+    public Quiz addQuiz(@RequestBody Quiz quiz) {
+        return service.addQuiz(quiz);
+    }
+
+    @PostMapping("/{id}/solve")
+    public QuizResult submitQuiz(@PathVariable int id, @RequestBody String body) {
+        return service.evaluateQuiz(id, body);
     }
 }
