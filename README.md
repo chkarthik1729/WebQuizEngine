@@ -1,107 +1,79 @@
 # JetBrains Academy's Web Quiz Engine
 
-## Stage #2: Lots of quizzes
+## Stage #3: Making quizzes more interesting
 
 ### Description
 
-<p>At this stage, you will improve the web service to create, get and solve lots of quizzes, not just a single one. All quizzes should be stored in the service's memory, without an external storage.</p>
+<p>Currently, your service allows creating new quizzes, but there may be problems if the client didn't provide all the quiz data. In such cases, the service will create an incorrect unsolvable quiz which is very frustrating for those who are trying to solve it.</p>
 
-<p>The format of requests and responses will be similar to the first stage, but you will make the API more REST-friendly and extendable. Each of the four possible operations is described below.</p>
+<p>At this stage, you should fix this so that the service does not accept incorrect quizzes. Another task is to make quizzes more interesting by supporting the arbitrary number of correct options (from zero to all). It means that to solve a quiz, the client needs to send all correct options at once, or zero if all options are wrong.</p>
 
-<p>To complete this stage, you may read about <a target="_blank" href="https://www.baeldung.com/jackson-ignore-properties-on-serialization" rel="noopener noreferrer nofollow">some Jackson serializer properties for ignoring fields</a>. But this is not the only way to solve this stage.</p>
+<p>Here is a few resources where you can read how to validate data in the API:</p>
+
+<ul>
+  <li><a target="_blank" href="https://reflectoring.io/bean-validation-with-spring-boot/" rel="noopener noreferrer nofollow">Bean validation with Spring Boot</a></li>
+  <li><a target="_blank" href="https://www.baeldung.com/spring-boot-bean-validation" rel="noopener noreferrer nofollow">Spring Boot bean validation</a></li>
+</ul>
+
+<p>There are only two modified operations for creating and solving quizzes. All other operations should not be changed or deleted.</p>
 
 ### Create a new quiz
 
-<p>To create a new quiz, the client need to send a JSON as the request's body via <code class="language-json">POST</code> to <code class="language-json">/api/quizzes</code>. The JSON should contain the four fields: <code class="language-json">title</code> (a string), <code class="language-json">text</code> (a string), <code class="language-json">options</code> (an array of strings) and <code class="language-json">answer</code> (integer index of the correct option). At this moment, all the keys are optional.</p>
+<p>To create a new quiz, the client needs to send a JSON as the request's body via <code class="language-json">POST</code> to <code class="language-json">/api/quizzes</code>. The JSON should contain the four fields:</p>
+
+<ul>
+  <li><code class="language-json">title</code>: a string, <strong>required</strong>;</li>
+  <li><code class="language-json">text</code>: a string, <strong>required</strong>;</li>
+  <li><code class="language-json">options</code>: an array of strings, required, should contain at least 2 items;</li>
+  <li><code class="language-json">answer</code>: an array of indexes of correct options, optional, since all options can be wrong.</li>
+</ul>
 
 <p>Here is a new JSON quiz as an example:</p>
 
 <pre><code class="language-json">{
-  "title": "The Java Logo",
-  "text": "What is depicted on the Java logo?",
-  "options": ["Robot","Tea leaf","Cup of coffee","Bug"],
-  "answer": 2
+  "title": "Coffee drinks",
+  "text": "Select only coffee drinks.",
+  "options": ["Americano","Tea","Cappuccino","Sprite"],
+  "answer": [0,2]
 }</code></pre>
 
-<p>The <code class="language-json">answer</code> equals 2 corresponds to the third item from the <code class="language-json">options</code> array (<code class="language-json">"Cup of coffee"</code>).</p>
+<p>The <code class="language-json">answer</code> equals <code class="language-json">[0,2]</code> corresponds to the first and the third item from the <code class="language-json">options</code> array (<code class="language-json">"Americano"</code> and <code class="language-json">"Cappuccino"</code>).</p>
 
-<p>The server response is a JSON with four fields: <code class="language-json">id</code>, <code class="language-json">title</code>, <code class="language-json">text</code> and <code class="language-json">options</code>. Here is an example.</p>
+<p>The server response is a JSON with four fields: <code class="language-json">id</code>, <code class="language-json">title</code>, <code class="language-json">text</code> and <code class="language-json">options</code>. Here is an example:</p>
 
 <pre><code class="language-json">{
   "id": 1,
-  "title": "The Java Logo",
-  "text": "What is depicted on the Java logo?",
-  "options": ["Robot","Tea leaf","Cup of coffee","Bug"]
+  "title": "Coffee drinks",
+  "text": "Select only coffee drinks.",
+  "options": ["Americano","Tea","Cappuccino","Sprite"]
 }</code></pre>
 
 <p>The <code class="language-json">id</code> field is a generated unique integer identifier for the quiz. Also, the response may or may not include the <code class="language-json">answer</code> field depending on your wishes. This is not very important for this operation.</p>
 
-<p>At this moment, it is admissible if a creation request does not contain some quiz data. In the next stages, we will improve the service to avoid some server errors.</p>
-
-### Get a quiz by id
-
-<p>To get a quiz by <code class="language-json">id</code>, the client sends the <code class="language-json">GET</code> request to <code class="language-json">/api/quizzes/{id}</code>.</p>
-
-<p>Here is a response example:</p>
-
-<pre><code class="language-json">{
-  "id": 1,
-  "title": "The Java Logo",
-  "text": "What is depicted on the Java logo?",
-  "options": ["Robot","Tea leaf","Cup of coffee","Bug"]
-}</code></pre>
-
-<p><div class="alert alert-warning">The response <strong>must not</strong> include the <code class="language-json">answer</code> field, otherwise, any user will be able to find the correct answer for any quiz.</div></p>
-
-<p>If the specified quiz does not exist, the server should return the <code class="language-json">404 (Not found)</code> status code.</p>
-
-### Get all quizzes
-
-<p>To get all existing quizzes in the service, the client sends the <code class="language-json">GET</code> request to <code class="language-json">/api/quizzes</code>.</p>
-
-<p>The response contains a JSON array of quizzes like the following:</p>
-
-<pre><code class="language-json">[
-  {
-    "id": 1,
-    "title": "The Java Logo",
-    "text": "What is depicted on the Java logo?",
-    "options": ["Robot","Tea leaf","Cup of coffee","Bug"]
-  },
-  {
-    "id": 2,
-    "title": "The Ultimate Question",
-    "text": "What is the answer to the Ultimate Question of Life, the Universe and Everything?",
-    "options": ["Everything goes right","42","2+2=4","11011100"]
-  }
-]</code></pre>
-
-<p><div class="alert alert-warning">The response <strong>must not</strong> include the <code class="language-json">answer</code> field, otherwise, any user will be able to find the correct answer for any quiz.</div></p>
-
-<p>If there are no quizzes, it the service returns an empty JSON array: <code class="language-json">[]</code>.</p>
-
-<p>In both cases, the status code is <code class="language-json">200 (OK)</code>.</p>
+<p>If the request JSON does not contain <code class="language-json">title</code> or <code class="language-json">text</code>, or they are empty strings (<code class="language-json">""</code>), then the server should respond with the  <code class="language-json">400 (Bad request)</code> status code. If the number of options in the quiz is less than 2, the server returns the same status code.</p>
 
 ### Solving a quiz
 
-<p>To solve the quiz, the client sends a POST request to <code class="language-json">/api/quizzes/{id}/solve</code> and passes the <code class="language-json">answer</code> parameter in the content. This parameter is the index of a chosen option from <code class="language-json">options</code> array. As before, it starts from zero.</p>
+<p>To solve a quiz, the client sends the <code class="language-json">POST</code> request to <code class="language-json">/api/quizzes/{id}/solve</code> with a JSON that contains the indexes of all chosen options as the answer. This looks like a regular JSON object with key <code class="language-json">"answer"</code> and value as the array: <code class="language-json">{"answer": [0,2]}</code>. As before, indexes start from zero.</p>
+
+<p>It is also possible to send an empty array <code class="language-json">[]</code> since some quizzes may not have correct options.</p>
 
 <p>The service returns a JSON with two fields: <code class="language-json">success</code> (<code class="language-json">true</code> or <code class="language-json">false</code>) and <code class="language-json">feedback</code> (just a string). There are three possible responses.</p>
 
 <ul>
-	<li>If the passed answer is correct (e.g., <code class="language-json">POST</code> to <code class="language-json">/api/quizzes/1/solve</code> with content <code class="language-json">answer=2</code>):</li>
+  <li>If the passed answer is correct:</li>
 </ul>
 
 <pre><code class="language-json">{"success":true,"feedback":"Congratulations, you're right!"}</code></pre>
 
 <ul>
-	<li>If the answer is incorrect (e.g., <code class="language-json">POST</code> to <code class="language-json">/api/quizzes/1/solve</code> with content <code class="language-json">answer=1</code>):</li>
+  <li>If the answer is incorrect:</li>
 </ul>
 
 <pre><code class="language-json">{"success":false,"feedback":"Wrong answer! Please, try again."}</code></pre>
 
 <ul>
-	<li>If the specified quiz does not exist, the server returns the <code class="language-json">404 (Not found)</code> status code.</li>
+  <li>If the specified quiz does not exist, the server returns the <code class="language-json">404 (Not found)</code> status code.</li>
 </ul>
 
 <p>You can write any other strings in the <code class="language-json">feedback</code> field, but the names of fields and the <code class="language-json">true</code>/<code class="language-json">false</code> values must match this example.</p>

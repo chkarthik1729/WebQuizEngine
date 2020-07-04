@@ -1,4 +1,4 @@
-package engine;
+package engine.quiz;
 
 public class QuizResult {
     private boolean success;
