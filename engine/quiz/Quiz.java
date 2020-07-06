@@ -1,19 +1,23 @@
 package engine.quiz;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 
+import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.Arrays;
 
 @JsonPropertyOrder({"id", "title", "text", "options"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Entity
 public class Quiz {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Id
+    @GeneratedValue (strategy = GenerationType.SEQUENCE)
     private int id;
 
     @NotBlank
@@ -29,7 +33,7 @@ public class Quiz {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private int[] answer;
 
-    private Quiz() {
+    public Quiz() {
     }
 
     @JsonCreator

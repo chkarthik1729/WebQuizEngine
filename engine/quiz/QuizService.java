@@ -1,42 +1,38 @@
 package engine.quiz;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Component
 public class QuizService {
-    private List<Quiz> quizzes;
-    private AtomicInteger runningId;
     private QuizResult correctAns, wrongAns;
 
+    @Autowired
+    private QuizRepository quizRepository;
+
     QuizService () {
-        quizzes = new ArrayList<>();
-        runningId = new AtomicInteger(1);
         correctAns = new QuizResult(true, "Congratulations, you're right!");
         wrongAns = new QuizResult(false, "Wrong answer! Please, try again.");
     }
 
     public List<Quiz> getAllQuizzes() {
-        return quizzes;
+        return (List<Quiz>) quizRepository.findAll();
     }
 
     public Quiz getQuiz(int id) {
-        try {
-            return quizzes.get(id-1);
-        } catch (IndexOutOfBoundsException ex) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Requested quiz not found");
+        Optional<Quiz> optionalQuiz = quizRepository.findById(id);
+        if (!optionalQuiz.isPresent()) {
+            throw new NoSuchElementException();
         }
+        return optionalQuiz.get();
     }
 
     public Quiz addQuiz(Quiz quiz) {
-        quizzes.add(quiz);
-        quiz.setId(runningId.getAndIncrement());
-        return quiz;
+        return quizRepository.save(quiz);
     }
 
     public QuizResult evaluateQuiz(int id, QuizAnswer answer) {

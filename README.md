@@ -1,79 +1,55 @@
 # JetBrains Academy's Web Quiz Engine
 
-## Stage #3: Making quizzes more interesting
+## Stage #4: Moving quizzes to DB
 
 ### Description
 
-<p>Currently, your service allows creating new quizzes, but there may be problems if the client didn't provide all the quiz data. In such cases, the service will create an incorrect unsolvable quiz which is very frustrating for those who are trying to solve it.</p>
+<p>At this stage, you will permanently store the data in a database, so that after restarting the service you will not lose all quizzes created by the users. You don't need to change the API of your service at this stage.</p>
 
-<p>At this stage, you should fix this so that the service does not accept incorrect quizzes. Another task is to make quizzes more interesting by supporting the arbitrary number of correct options (from zero to all). It means that to solve a quiz, the client needs to send all correct options at once, or zero if all options are wrong.</p>
-
-<p>Here is a few resources where you can read how to validate data in the API:</p>
+<p>Here are some articles that explain how to work with databases in Spring Boot:</p>
 
 <ul>
-  <li><a target="_blank" href="https://reflectoring.io/bean-validation-with-spring-boot/" rel="noopener noreferrer nofollow">Bean validation with Spring Boot</a></li>
-  <li><a target="_blank" href="https://www.baeldung.com/spring-boot-bean-validation" rel="noopener noreferrer nofollow">Spring Boot bean validation</a></li>
+	<li><a target="_blank" href="https://attacomsian.com/blog/spring-data-jpa-h2-database" rel="noopener noreferrer nofollow">Spring Data JPA with H2 database</a></li>
+	<li><a target="_blank" href="https://www.javaguides.net/2019/08/spring-boot-crud-rest-api-spring-data-jpa-h2-database-example.html" rel="noopener noreferrer nofollow">Sprint Boot CRUD REST API + Spring Data JPA + H2 DB Example</a></li>
 </ul>
 
-<p>There are only two modified operations for creating and solving quizzes. All other operations should not be changed or deleted.</p>
+<p>If that doesn't feel like enough, you can google other articles on the same topics (Spring Data, Repositories, JPA, H2).</p>
 
-### Create a new quiz
+<p>We recommend you use the H2 database in the disk-based storage mode (not in-memory).</p>
 
-<p>To create a new quiz, the client needs to send a JSON as the request's body via <code class="language-json">POST</code> to <code class="language-json">/api/quizzes</code>. The JSON should contain the four fields:</p>
+<p>To start working with it, just add a couple of new dependencies in your <code class="language-java">build.gradle</code> file:</p>
 
-<ul>
-  <li><code class="language-json">title</code>: a string, <strong>required</strong>;</li>
-  <li><code class="language-json">text</code>: a string, <strong>required</strong>;</li>
-  <li><code class="language-json">options</code>: an array of strings, required, should contain at least 2 items;</li>
-  <li><code class="language-json">answer</code>: an array of indexes of correct options, optional, since all options can be wrong.</li>
-</ul>
-
-<p>Here is a new JSON quiz as an example:</p>
-
-<pre><code class="language-json">{
-  "title": "Coffee drinks",
-  "text": "Select only coffee drinks.",
-  "options": ["Americano","Tea","Cappuccino","Sprite"],
-  "answer": [0,2]
+<pre><code class="language-java">dependencies {
+    // ...
+    runtimeOnly 'com.h2database:h2'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // ...
 }</code></pre>
 
-<p>The <code class="language-json">answer</code> equals <code class="language-json">[0,2]</code> corresponds to the first and the third item from the <code class="language-json">options</code> array (<code class="language-json">"Americano"</code> and <code class="language-json">"Cappuccino"</code>).</p>
+<p>The first dependency will allow using the H2 database in your application, and the second will allow using Spring Data JPA.</p>
 
-<p>The server response is a JSON with four fields: <code class="language-json">id</code>, <code class="language-json">title</code>, <code class="language-json">text</code> and <code class="language-json">options</code>. Here is an example:</p>
+<p>You also need to configure the database inside the <code class="language-java">application.properties</code> file. Do not change the database path.</p>
 
-<pre><code class="language-json">{
-  "id": 1,
-  "title": "Coffee drinks",
-  "text": "Select only coffee drinks.",
-  "options": ["Americano","Tea","Cappuccino","Sprite"]
-}</code></pre>
+<pre><code class="language-java">spring.datasource.url=jdbc:h2:file:../quizdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
 
-<p>The <code class="language-json">id</code> field is a generated unique integer identifier for the quiz. Also, the response may or may not include the <code class="language-json">answer</code> field depending on your wishes. This is not very important for this operation.</p>
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=update
 
-<p>If the request JSON does not contain <code class="language-json">title</code> or <code class="language-json">text</code>, or they are empty strings (<code class="language-json">""</code>), then the server should respond with the  <code class="language-json">400 (Bad request)</code> status code. If the number of options in the quiz is less than 2, the server returns the same status code.</p>
+spring.h2.console.enabled=true
+spring.h2.console.settings.trace=false
+spring.h2.console.settings.web-allow-others=false</code></pre>
 
-### Solving a quiz
+<p>This config will automatically create the database and update tables inside it.</p>
 
-<p>To solve a quiz, the client sends the <code class="language-json">POST</code> request to <code class="language-json">/api/quizzes/{id}/solve</code> with a JSON that contains the indexes of all chosen options as the answer. This looks like a regular JSON object with key <code class="language-json">"answer"</code> and value as the array: <code class="language-json">{"answer": [0,2]}</code>. As before, indexes start from zero.</p>
+<p>You should use exactly the same name for DB: <code class="language-java">quizdb</code>.</p>
 
-<p>It is also possible to send an empty array <code class="language-json">[]</code> since some quizzes may not have correct options.</p>
+<p>If you want to see SQL statements generated by Spring ORM, just add the following line in the properties file:</p>
 
-<p>The service returns a JSON with two fields: <code class="language-json">success</code> (<code class="language-json">true</code> or <code class="language-json">false</code>) and <code class="language-json">feedback</code> (just a string). There are three possible responses.</p>
+<pre><code class="language-java">spring.jpa.show-sql=true</code></pre>
 
-<ul>
-  <li>If the passed answer is correct:</li>
-</ul>
+<p>To start using this database, you need to map your classes to database tables using the <a target="_blank" href="https://spring.io/guides/gs/accessing-data-jpa/" rel="noopener noreferrer nofollow">JPA annotations and Spring Repositories</a>.</p>
 
-<pre><code class="language-json">{"success":true,"feedback":"Congratulations, you're right!"}</code></pre>
-
-<ul>
-  <li>If the answer is incorrect:</li>
-</ul>
-
-<pre><code class="language-json">{"success":false,"feedback":"Wrong answer! Please, try again."}</code></pre>
-
-<ul>
-  <li>If the specified quiz does not exist, the server returns the <code class="language-json">404 (Not found)</code> status code.</li>
-</ul>
-
-<p>You can write any other strings in the <code class="language-json">feedback</code> field, but the names of fields and the <code class="language-json">true</code>/<code class="language-json">false</code> values must match this example.</p>
+<p>You can use any tables in your database to complete this stage. The main thing is that when you restart the service, quizzes should not be lost. Our tests will create and get them via the API developed at the previous stages.</p>

@@ -1,24 +1,22 @@
 package engine;
 
-import engine.quiz.Quiz;
-import engine.quiz.QuizAnswer;
-import engine.quiz.QuizResult;
-import engine.quiz.QuizService;
+import engine.quiz.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Validated
 @RestController
-@RequestMapping("/api/quizzes")
+@RequestMapping(value = "/api/quizzes", produces = "application/json")
 public class QuizController {
 
     @Autowired
@@ -31,17 +29,13 @@ public class QuizController {
 
     @GetMapping("/{id}")
     public Quiz getQuiz(@PathVariable @Min(1) int id) {
-        try {
-            return service.getQuiz(id);
-        } catch (IndexOutOfBoundsException ignored) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Required quiz not available");
-        }
+        return service.getQuiz(id);
     }
 
     @PostMapping
+    @ResponseBody
     public Quiz addQuiz(@RequestBody @Valid @NotNull Quiz quiz) {
-        service.addQuiz(quiz);
-        return quiz;
+        return service.addQuiz(quiz);
     }
 
     @PostMapping("/{id}/solve")
@@ -51,7 +45,12 @@ public class QuizController {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public void handleConstraintViolationException() {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void handleNotFoundException() {
     }
 }
