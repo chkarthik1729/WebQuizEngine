@@ -1,9 +1,6 @@
 package engine.quiz;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -32,6 +29,9 @@ public class Quiz {
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private int[] answer;
+
+    @JsonIgnore
+    private String creator;
 
     public Quiz() {
     }
@@ -87,5 +87,13 @@ public class Quiz {
 
     public void setAnswer(int[] answer) {
         this.answer = answer;
+    }
+
+    public String getCreator() {
+        return creator;
+    }
+
+    public void setCreator(String creator) {
+        this.creator = creator;
     }
 }

@@ -1,55 +1,67 @@
 # JetBrains Academy's Web Quiz Engine
 
-## Stage #4: Moving quizzes to DB
+## Stage #5: User authorization
 
 ### Description
 
-<p>At this stage, you will permanently store the data in a database, so that after restarting the service you will not lose all quizzes created by the users. You don't need to change the API of your service at this stage.</p>
+<p>Your service already has a well-designed API and stores all the quizzes in the database. At this stage, you will improve the service to support users and the authorization process. This will allow you to provide different privileges to the users and understand what do they do in the service.</p>
 
-<p>Here are some articles that explain how to work with databases in Spring Boot:</p>
+<p>Here are two operations to be added:</p>
 
 <ul>
-	<li><a target="_blank" href="https://attacomsian.com/blog/spring-data-jpa-h2-database" rel="noopener noreferrer nofollow">Spring Data JPA with H2 database</a></li>
-	<li><a target="_blank" href="https://www.javaguides.net/2019/08/spring-boot-crud-rest-api-spring-data-jpa-h2-database-example.html" rel="noopener noreferrer nofollow">Sprint Boot CRUD REST API + Spring Data JPA + H2 DB Example</a></li>
+	<li><strong>register a new user</strong>, which accepts an email as the login and a password;</li>
+	<li><strong>deleting a quiz</strong> created by the current user.</li>
 </ul>
 
-<p>If that doesn't feel like enough, you can google other articles on the same topics (Spring Data, Repositories, JPA, H2).</p>
+<p>All the previously developed operations should not be changed. As before, when creating a new quiz, the service checks the following rules: the fields <code class="java">title</code> and <code class="java">text</code> exist and they are not empty, and the <code class="java">options</code> array has two or more items. If at least one of these conditions is not satisfied, the service returns the <code class="java">400 (Bad request)</code> status code. As before, server responses for getting quizzes should not include answers for the quizzes.</p>
 
-<p>We recommend you use the H2 database in the disk-based storage mode (not in-memory).</p>
+<p><div class="alert alert-warning">For the testing reasons, make <code class="java">POST /actuator/shutdown</code> endpoint accessible without authentication.</div></p>
 
-<p>To start working with it, just add a couple of new dependencies in your <code class="language-java">build.gradle</code> file:</p>
+<p>The main change is the accessibility of these operations. Now, to perform any operations with quizzes (<strong>create</strong>, <strong>solve</strong>, <strong>get one</strong>, <strong>get all</strong>, <strong>delete</strong>), the user has to be registered and then authorized via <strong>HTTP Basic Auth</strong> by sending their email and password for each request. Otherwise, the service returns the <code class="java">401 (Unauthorized)</code> status code. Thus, the only operation that does not require authorization is the registration.</p>
 
-<pre><code class="language-java">dependencies {
-    // ...
-    runtimeOnly 'com.h2database:h2'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    // ...
-}</code></pre>
+<p>Here are some articles about spring security:</p>
 
-<p>The first dependency will allow using the H2 database in your application, and the second will allow using Spring Data JPA.</p>
+<ul>
+	<li><a target="_blank" href="https://www.springboottutorial.com/securing-rest-services-with-spring-boot-starter-security" rel="noopener noreferrer nofollow">securing rest services</a>;</li>
+	<li><a target="_blank" href="https://howtodoinjava.com/spring-boot2/security-rest-basic-auth-example/" rel="noopener noreferrer nofollow">security rest basic auth example</a>;</li>
+	<li><a target="_blank" href="https://www.devglan.com/spring-security/spring-boot-security-rest-basic-authentication" rel="noopener noreferrer nofollow">spring boot and basic authentication</a>;</li>
+</ul>
 
-<p>You also need to configure the database inside the <code class="language-java">application.properties</code> file. Do not change the database path.</p>
+<p><div class="alert alert-warning">Do not store the actual password in the database! Instead, configure password encryption using <code class="java">BCrypt</code> or some other algorithm via Spring Security.</div></p>
 
-<pre><code class="language-java">spring.datasource.url=jdbc:h2:file:../quizdb
-spring.datasource.driverClassName=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=password
+### Register a user
 
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=update
+<p>To register a new user, the client needs to send a JSON with <code class="java">email</code> and <code class="java">password</code> via <code class="java">POST</code> request to <code class="java">/api/register</code>:</p>
 
-spring.h2.console.enabled=true
-spring.h2.console.settings.trace=false
-spring.h2.console.settings.web-allow-others=false</code></pre>
+<pre><code class="java">{
+  "email": "test@gmail.com",
+  "password": "secret"
+}
+</code></pre>
 
-<p>This config will automatically create the database and update tables inside it.</p>
+<p>The service returns <code class="java">200 (OK)</code> status code if the registration has been completed successfully.</p>
 
-<p>You should use exactly the same name for DB: <code class="language-java">quizdb</code>.</p>
+<p>If the <code class="java">email</code> is already taken by another user, the service will return the <code class="java">400 (Bad request)</code> status code.</p>
 
-<p>If you want to see SQL statements generated by Spring ORM, just add the following line in the properties file:</p>
+<p>Here are some additional restrictions to the format of user credentials:</p>
 
-<pre><code class="language-java">spring.jpa.show-sql=true</code></pre>
+<ul>
+	<li>the email must have a valid format (with <code class="java">@</code> and <code class="java">.</code>);</li>
+	<li>the password must have at <strong>least five</strong> characters.</li>
+</ul>
 
-<p>To start using this database, you need to map your classes to database tables using the <a target="_blank" href="https://spring.io/guides/gs/accessing-data-jpa/" rel="noopener noreferrer nofollow">JPA annotations and Spring Repositories</a>.</p>
+<p>If any of them is not satisfied, the service will also return the <code class="java">400 (Bad request)</code> status code.</p>
 
-<p>You can use any tables in your database to complete this stage. The main thing is that when you restart the service, quizzes should not be lost. Our tests will create and get them via the API developed at the previous stages.</p>
+<p>All the following operations need a registered user to be successfully completed.</p>
+
+### Delete a quiz
+
+<p>A user can delete their quiz by sending the <code class="java">DELETE</code> request to <code class="java">/api/quizzes/{id}</code>.</p>
+
+<p>If the operation was successful, the service returns the <code class="java">204 (No content)</code> status code without any content.</p>
+
+<p>If the specified quiz does not exist, the server returns <code class="java">404 (Not found)</code>. If the specified user is not the author of this quiz, the response is the <code class="java">403 (Forbidden)</code> status code.</p>
+
+<h2>Additional ideas</h2>
+
+<p>If you would like your service to support more operations, add <code class="java">PUT</code> or <code class="java">PATCH</code> to update existing quizzes in the similar way as <code class="java">DELETE</code>. Our tests will not verify these operations.</p>
