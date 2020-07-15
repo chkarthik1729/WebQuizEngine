@@ -15,7 +15,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-@Validated
+@Validated()
 @RestController
 @RequestMapping(value = "/api", produces = "application/json")
 public class Controller {
@@ -29,7 +29,7 @@ public class Controller {
     }
 
     @GetMapping("/quizzes/{id}")
-    public Quiz getQuiz(@PathVariable @Min(1) int id) {
+    public Quiz getQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id) {
         return quizService.getQuiz(id);
     }
 
@@ -40,7 +40,7 @@ public class Controller {
     }
 
     @PostMapping("/quizzes/{id}/solve")
-    public QuizResult submitQuiz(@PathVariable @Min(1) int id,
+    public QuizResult submitQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id,
                                  @RequestBody @NotNull QuizAnswer answer) {
         return quizService.evaluateQuiz(id, answer);
     }
@@ -51,7 +51,7 @@ public class Controller {
     }
 
     @DeleteMapping("/quizzes/{id}")
-    public ResponseEntity deleteQuiz(@PathVariable @Min(1) int id, Authentication authentication) {
+    public ResponseEntity deleteQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id, Authentication authentication) {
         return quizService.deleteQuiz(id, authentication);
     }
 }

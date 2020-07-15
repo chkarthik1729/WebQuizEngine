@@ -10,11 +10,11 @@ import javax.validation.constraints.Size;
 public class User {
     @Id
     @NotNull
-    @Email(regexp = ".+@.+\\..+")
+    @Email(regexp = ".+@.+\\..+", message = "Given string is not a valid email")
     private String email;
 
     @NotNull
-    @Size(min = 5)
+    @Size(min = 5, message = "Password must be atleast 5 characters long")
     private String password;
 
     public User() {
