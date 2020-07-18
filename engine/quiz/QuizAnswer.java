@@ -3,7 +3,6 @@ package engine.quiz;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Arrays;
 
 public class QuizAnswer {
 

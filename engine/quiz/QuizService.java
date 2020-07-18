@@ -4,32 +4,39 @@ import engine.exception.QuizNotFoundException;
 import engine.exception.UnauthorizedAccessException;
 import engine.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.nio.file.AccessDeniedException;
-import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Component
 public class QuizService {
-    private QuizResult correctAns, wrongAns;
+    private final static QuizResult
+            correctAns = new QuizResult(true, "Congratulations, you're right!"),
+            wrongAns = new QuizResult(false, "Wrong answer! Please, try again.");
 
     @Autowired private QuizRepository quizRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private SubmissionRepository submissionRepository;
 
     QuizService () {
-        correctAns = new QuizResult(true, "Congratulations, you're right!");
-        wrongAns = new QuizResult(false, "Wrong answer! Please, try again.");
     }
 
-    public List<Quiz> getAllQuizzes() {
-        return (List<Quiz>) quizRepository.findAll();
+    public Page<Quiz> getPagedQuizzes(int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return quizRepository.findAll(pageable);
+    }
+
+    public Page<Submission> getPagedSubmissions(int page, int pageSize, Authentication authentication) {
+        String username = authentication.getName();
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("timestamp").descending());
+        return submissionRepository.getSubmissions(username, pageable);
     }
 
     public Quiz getQuiz(int id) {
@@ -46,7 +53,7 @@ public class QuizService {
         return quizRepository.save(quiz);
     }
 
-    public QuizResult evaluateQuiz(int id, QuizAnswer answer) {
+    public QuizResult evaluateQuiz(int id, QuizAnswer answer, Authentication authentication) {
         int []originalAnswer = getQuiz(id).getAnswer();
         int []providedAnswer= answer.getAnswer();
 
@@ -54,6 +61,9 @@ public class QuizService {
         for (int i = 0; i < originalAnswer.length; i++) {
             if (originalAnswer[i] != providedAnswer[i]) return wrongAns;
         }
+
+        Submission submission = new Submission(authentication.getName(), id, System.currentTimeMillis());
+        submissionRepository.save(submission);
         return correctAns;
     }
 
@@ -64,5 +74,19 @@ public class QuizService {
         }
         quizRepository.delete(quiz);
         return new ResponseEntity(HttpStatus.NO_CONTENT);
+    }
+
+    public ResponseEntity updateQuiz(int id, Quiz quiz, Authentication authentication) {
+        if (quizRepository.existsById(id)) {
+            if (!getQuiz(id).getCreator().equals(authentication.getName())) {
+                throw new UnauthorizedAccessException();
+            }
+
+            quiz.setId(id);
+            return new ResponseEntity(addQuiz(quiz, authentication), HttpStatus.OK);
+
+        } else {
+            return new ResponseEntity(addQuiz(quiz, authentication), HttpStatus.CREATED);
+        }
     }
 }

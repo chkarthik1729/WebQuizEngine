@@ -1,67 +1,84 @@
 # JetBrains Academy's Web Quiz Engine
 
-## Stage #5: User authorization
+## Stage #6: Advanced queries
 
 ### Description
 
-<p>Your service already has a well-designed API and stores all the quizzes in the database. At this stage, you will improve the service to support users and the authorization process. This will allow you to provide different privileges to the users and understand what do they do in the service.</p>
+<p>At this last stage, your service will be improved to perform some trickier requests and return paginated responses. From the client's point of view, only a small part of API will be changed here.</p>
 
-<p>Here are two operations to be added:</p>
-
-<ul>
-	<li><strong>register a new user</strong>, which accepts an email as the login and a password;</li>
-	<li><strong>deleting a quiz</strong> created by the current user.</li>
-</ul>
-
-<p>All the previously developed operations should not be changed. As before, when creating a new quiz, the service checks the following rules: the fields <code class="java">title</code> and <code class="java">text</code> exist and they are not empty, and the <code class="java">options</code> array has two or more items. If at least one of these conditions is not satisfied, the service returns the <code class="java">400 (Bad request)</code> status code. As before, server responses for getting quizzes should not include answers for the quizzes.</p>
-
-<p><div class="alert alert-warning">For the testing reasons, make <code class="java">POST /actuator/shutdown</code> endpoint accessible without authentication.</div></p>
-
-<p>The main change is the accessibility of these operations. Now, to perform any operations with quizzes (<strong>create</strong>, <strong>solve</strong>, <strong>get one</strong>, <strong>get all</strong>, <strong>delete</strong>), the user has to be registered and then authorized via <strong>HTTP Basic Auth</strong> by sending their email and password for each request. Otherwise, the service returns the <code class="java">401 (Unauthorized)</code> status code. Thus, the only operation that does not require authorization is the registration.</p>
-
-<p>Here are some articles about spring security:</p>
+<p>Here are two articles worth reading before we begin:</p>
 
 <ul>
-	<li><a target="_blank" href="https://www.springboottutorial.com/securing-rest-services-with-spring-boot-starter-security" rel="noopener noreferrer nofollow">securing rest services</a>;</li>
-	<li><a target="_blank" href="https://howtodoinjava.com/spring-boot2/security-rest-basic-auth-example/" rel="noopener noreferrer nofollow">security rest basic auth example</a>;</li>
-	<li><a target="_blank" href="https://www.devglan.com/spring-security/spring-boot-security-rest-basic-authentication" rel="noopener noreferrer nofollow">spring boot and basic authentication</a>;</li>
+	<li><a target="_blank" href="https://www.baeldung.com/spring-data-jpa-query" rel="noopener noreferrer nofollow">Spring Data @Query</a> annotation for custom queries;</li>
+	<li><a target="_blank" href="https://howtodoinjava.com/spring-boot2/pagination-sorting-example/" rel="noopener noreferrer nofollow">Spring Boot Pagination and sorting examples</a>.</li>
 </ul>
 
-<p><div class="alert alert-warning">Do not store the actual password in the database! Instead, configure password encryption using <code class="java">BCrypt</code> or some other algorithm via Spring Security.</div></p>
+### Get all quizzes with paging (MODIFIED)
 
-### Register a user
+<p>To get all existing quizzes in the service, the client sends the <code class="java">GET</code> request to <code class="java">/api/quizzes</code> as before. But here is the problem: the number of stored quizzes can be very large since your service is so popular among so many users.</p>
 
-<p>To register a new user, the client needs to send a JSON with <code class="java">email</code> and <code class="java">password</code> via <code class="java">POST</code> request to <code class="java">/api/register</code>:</p>
+<p>In this regard, your API should return only 10 quizzes at once and supports the ability to specify which portion of quizzes is needed.</p>
+
+<p><div class="alert alert-warning">Please, use the standard libraries for the pagination.</div></p>
+
+<p>The response contains a JSON with quizzes (inside <code class="java">content</code>) and some additional metadata:</p>
 
 <pre><code class="java">{
-  "email": "test@gmail.com",
-  "password": "secret"
-}
-</code></pre>
+  "totalPages":1,
+  "totalElements":3,
+  "last":true,
+  "first":true,
+  "sort":{ },
+  "number":0,
+  "numberOfElements":3,
+  "size":10,
+  "empty":false,
+  "pageable": { },
+  "content":[
+    {"id":102,"title":"Test 1","text":"Text 1","options":["a","b","c"]},
+    {"id":103,"title":"Test 2","text":"Text 2","options":["a", "b", "c", "d"]},
+    {"id":202,"title":"The Java Logo","text":"What is depicted on the Java logo?",
+     "options":["Robot","Tea leaf","Cup of coffee","Bug"]}
+  ]
+}</code></pre>
 
-<p>The service returns <code class="java">200 (OK)</code> status code if the registration has been completed successfully.</p>
+<p>We've simplified JSON a bit, but you can keep it in the same format it is generated by the framework. Our tests will validate only the essential fields.</p>
 
-<p>If the <code class="java">email</code> is already taken by another user, the service will return the <code class="java">400 (Bad request)</code> status code.</p>
+<p>The API should support the navigation through pages by passing the <code class="java">page</code> parameter ( <code class="java">/api/quizzes?page=1</code>). The first page is 0 since pages start from zero, just like our quizzes.</p>
 
-<p>Here are some additional restrictions to the format of user credentials:</p>
+<p>If there are no quizzes, <code class="java">content</code> is empty <code class="java">[]</code>. If the user is authorized, the status code is <code class="java">200 (OK)</code>; otherwise, it's <code class="java">401 (Unauthorized)</code>.</p>
 
-<ul>
-	<li>the email must have a valid format (with <code class="java">@</code> and <code class="java">.</code>);</li>
-	<li>the password must have at <strong>least five</strong> characters.</li>
-</ul>
+### Get all completions of quizzes with paging (NEW)
 
-<p>If any of them is not satisfied, the service will also return the <code class="java">400 (Bad request)</code> status code.</p>
+<p>Your service must provide a new operation for getting all completions of quizzes for a specified user by sending the <code class="java">GET</code> request to <code class="java">/api/quizzes/completed</code> together with the user auth data. All the completions should be sorted from the most recent to the oldest.</p>
 
-<p>All the following operations need a registered user to be successfully completed.</p>
+<p>A response is separated by pages since the service may return a lot of data. It contains a JSON with quizzes (inside <code class="java">content</code>) and some additional metadata as in the previous operation.</p>
 
-### Delete a quiz
+<p>Here is a response example:</p>
 
-<p>A user can delete their quiz by sending the <code class="java">DELETE</code> request to <code class="java">/api/quizzes/{id}</code>.</p>
+<pre><code class="java">{
+  "totalPages":1,
+  "totalElements":5,
+  "last":true,
+  "first":true,
+  "empty":false,
+  "content":[
+    {"id":103,"completedAt":"2019-10-29T21:13:53.779542"},
+    {"id":102,"completedAt":"2019-10-29T21:13:52.324993"},
+    {"id":101,"completedAt":"2019-10-29T18:59:58.387267"},
+    {"id":101,"completedAt":"2019-10-29T18:59:55.303268"},
+    {"id":202,"completedAt":"2019-10-29T18:59:54.033801"}
+  ]
+}</code></pre>
 
-<p>If the operation was successful, the service returns the <code class="java">204 (No content)</code> status code without any content.</p>
+<p>Since it is allowed to solve a quiz multiple times, the response may contain duplicate quizzes, but with the different completion date.</p>
 
-<p>If the specified quiz does not exist, the server returns <code class="java">404 (Not found)</code>. If the specified user is not the author of this quiz, the response is the <code class="java">403 (Forbidden)</code> status code.</p>
+<p>We removed some metadata keys from the response to keep it comprehensible.</p>
 
-<h2>Additional ideas</h2>
+<p>If there are no quizzes, <code class="java">content</code> is empty <code class="java">[]</code>. If the user is authorized, the status code is <code class="java">200 (OK)</code>; otherwise, it's <code class="java">401 (Unauthorized)</code>.</p>
 
-<p>If you would like your service to support more operations, add <code class="java">PUT</code> or <code class="java">PATCH</code> to update existing quizzes in the similar way as <code class="java">DELETE</code>. Our tests will not verify these operations.</p>
+### A few words in the end
+
+<p>Good job! You can put this project on GitHub as an example of your work and your expertise. Just don't forget to write a clear description in the README and refer Hyperskill :) If may also be useful for you to get a code review, at least for the last stage of the project.</p>
+
+<p>If you would like to continue the project, you can develop a web or mobile client for this web service.</p>

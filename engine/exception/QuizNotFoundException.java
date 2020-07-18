@@ -1,6 +1,5 @@
 package engine.exception;
 
-import javassist.NotFoundException;
 import org.apache.logging.log4j.message.StringFormattedMessage;
 
 public class QuizNotFoundException extends RuntimeException {

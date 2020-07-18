@@ -8,8 +8,10 @@ import org.springframework.security.config.annotation.web.configuration.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.*;
 import org.springframework.security.config.annotation.authentication.builders.*;
+import org.springframework.stereotype.Component;
 
 @EnableWebSecurity
+@Component
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Autowired private UserService userService;
@@ -30,6 +32,8 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         .antMatchers("/api/register", "/actuator/shutdown").permitAll()
         .antMatchers("/**").authenticated()
         .and().httpBasic();
+
+        http.headers().frameOptions().sameOrigin();
     }
 
     @Override

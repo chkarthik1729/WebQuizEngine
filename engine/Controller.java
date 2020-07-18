@@ -5,6 +5,7 @@ import engine.quiz.*;
 import engine.user.User;
 import engine.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import java.util.List;
 
 @Validated()
 @RestController
@@ -24,8 +24,16 @@ public class Controller {
     @Autowired UserService userService;
 
     @GetMapping("/quizzes")
-    public List<Quiz> getQuizzes() {
-        return quizService.getAllQuizzes();
+    public Page<Quiz> getPagedQuizzes(@RequestParam(required = false, defaultValue = "0") @Min(0) int page,
+                                      @RequestParam(required = false, defaultValue = "10") @Min(1) int pageSize) {
+        return quizService.getPagedQuizzes(page, pageSize);
+    }
+
+    @GetMapping("/quizzes/completed")
+    public Page<Submission> getCompletedQuizzes(@RequestParam(required = false, defaultValue = "0") @Min(0) int page,
+                                                @RequestParam(required = false, defaultValue = "10") @Min(1) int pageSize,
+                                                Authentication authentication) {
+        return quizService.getPagedSubmissions(page, pageSize, authentication);
     }
 
     @GetMapping("/quizzes/{id}")
@@ -41,8 +49,9 @@ public class Controller {
 
     @PostMapping("/quizzes/{id}/solve")
     public QuizResult submitQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id,
-                                 @RequestBody @NotNull QuizAnswer answer) {
-        return quizService.evaluateQuiz(id, answer);
+                                 @RequestBody @NotNull QuizAnswer answer,
+                                 Authentication authentication) {
+        return quizService.evaluateQuiz(id, answer, authentication);
     }
 
     @PostMapping("/register")
@@ -53,5 +62,11 @@ public class Controller {
     @DeleteMapping("/quizzes/{id}")
     public ResponseEntity deleteQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id, Authentication authentication) {
         return quizService.deleteQuiz(id, authentication);
+    }
+
+    @PutMapping("/quizzes/{id}")
+    public ResponseEntity updateQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id,
+                                     @RequestBody @Valid @NotNull Quiz quiz, Authentication authentication) {
+        return quizService.updateQuiz(id, quiz, authentication);
     }
 }
