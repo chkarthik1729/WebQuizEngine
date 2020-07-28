@@ -60,7 +60,8 @@ public class Controller {
     }
 
     @DeleteMapping("/quizzes/{id}")
-    public ResponseEntity deleteQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id, Authentication authentication) {
+    public ResponseEntity deleteQuiz(@PathVariable @Min(value = 1, message = "Id must be a positive integer") int id,
+                                     Authentication authentication) {
         return quizService.deleteQuiz(id, authentication);
     }
 
