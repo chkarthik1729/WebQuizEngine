@@ -1,0 +1,5 @@
+**/.DS_Store
+.idea/
+WebQuizEngine.iml
+quizdb.mv.db
+target/
