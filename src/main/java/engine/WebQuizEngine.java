@@ -19,7 +19,7 @@ public class WebQuizEngine {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins("*")
+                        .allowedOriginPatterns("*")
                         .allowedHeaders("GET", "POST", "PUT", "DELETE")
                         .allowCredentials(true)
                         .allowedHeaders("*");
